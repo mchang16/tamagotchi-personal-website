@@ -477,7 +477,7 @@ export default function Home() {
                 <div className="description">
                   {currentIcon === null && (
                     <Text speed={30}>
-                      Welcome! Get to know me by clicking or draggin and
+                      Welcome! Get to know me by clicking or dragging and
                       dropping those icons!
                     </Text>
                   )}
