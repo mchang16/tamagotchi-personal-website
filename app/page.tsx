@@ -7,6 +7,7 @@ import {
 } from "@dnd-kit/react";
 import { useState, useEffect, useMemo, useRef } from "react";
 import "./styles.css";
+import React from "react";
 
 function Draggable({
   id,
@@ -26,7 +27,6 @@ function Draggable({
     event.stopPropagation();
     handleEnter(id);
   };
-
   return (
     <button
       type="button"
@@ -58,17 +58,22 @@ function Droppable({
   );
 }
 
-const extractText = (node: React.ReactNode) => {
-  let fullText = "";
-  for (const item of node) {
-    if (item.type === "a") {
-      fullText += item.props.children;
-    } else {
-      fullText += item;
+const extractText = (node: React.ReactNode): string => {
+  return React.Children.toArray(node).reduce<string>((text, child) => {
+    if (child == null || typeof child === "boolean") {
+      return text;
     }
-  }
 
-  return fullText;
+    if (typeof child === "string" || typeof child === "number") {
+      return text + String(child);
+    }
+
+    if (React.isValidElement<{ children?: React.ReactNode }>(child)) {
+      return text + extractText(child.props.children);
+    }
+
+    return text;
+  }, "");
 };
 
 const roundWord = (text: string, pageEnd: number) => {
