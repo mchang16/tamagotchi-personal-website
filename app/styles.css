@@ -513,9 +513,23 @@ ul {
     font-weight: bold;
     font-size: 0.9rem;
   }
+
+  .mametchi {
+    display: none;
+  }
 }
 
 @media screen and (max-width: 400px) {
+  .square {
+    overflow: scroll;
+    max-width: 100vw;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 5fr;
+    grid-template-areas:
+      "icon-sidebar"
+      "content";
+  }
+
   .flex {
     align-items: normal;
   }
