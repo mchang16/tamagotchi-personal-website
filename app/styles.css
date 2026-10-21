@@ -547,6 +547,7 @@ ul {
     top: 60%;
     z-index: 10;
     font-size: 0.7rem;
+    background-color: transparent;
   }
 
   .description.modal-container {
