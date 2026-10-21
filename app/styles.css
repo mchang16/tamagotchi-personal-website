@@ -137,6 +137,10 @@ a {
   color: #0070e0;
 }
 
+button {
+  color: #2a1d1d;
+}
+
 .link-text {
   float: left;
 }
@@ -208,6 +212,7 @@ a {
   display: flex;
   flex: 1;
   flex-direction: column;
+  color: #2a1d1d;
 }
 
 .square > .description {
@@ -222,6 +227,7 @@ a {
 
 .description {
   background-color: #fff0e9;
+  color: #2a1d1d;
 
   height: 100%;
   grid-area: description;
@@ -521,7 +527,8 @@ ul {
 
 @media screen and (max-width: 400px) {
   .square {
-    overflow: scroll;
+    overflow-x: scroll;
+    scrollbar-width: none;
     max-width: 100vw;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 5fr;
@@ -532,10 +539,6 @@ ul {
 
   .flex {
     align-items: normal;
-  }
-
-  .square {
-    overflow-x: scroll;
   }
 
   .description {
