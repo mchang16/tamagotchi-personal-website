@@ -25,6 +25,10 @@
   animation: animateMametchi 20s linear 0s infinite;
 }
 
+.mametchi:hover {
+  cursor: pointer;
+}
+
 @keyframes animateMametchi {
   0% {
     top: 50%;
