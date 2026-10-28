@@ -326,7 +326,6 @@ export default function Home() {
   const caughtMametchi = (e: React.MouseEvent<HTMLImageElement>) => {
     setIsCaught(true);
 
-    console.log(e);
     const container = e.currentTarget.closest(".square-wrap");
     if (!container) return;
 
@@ -360,7 +359,6 @@ export default function Home() {
       setCaughtPosition([e.clientX - bounds.left, e.clientY - bounds.top]);
       return;
     }
-    console.log(e.clientX - bounds.left, e.clientY - bounds.top);
   };
   return (
     <DragDropProvider
