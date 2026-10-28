@@ -171,26 +171,70 @@ const Text = ({
   );
 };
 
-function InlineTypewriter({
-  segments,
-  speed = 30,
-  className,
-  inline = false,
-  onComplete,
-}: {
-  segments: Array<{ text: string; href?: string; strong?: boolean }>;
+type InlineTypewriterSegment = {
+  text: string;
+  href?: string;
+  strong?: boolean;
+  onClick?: () => void;
+};
+
+type InlineTypewriterPage = {
+  segments: InlineTypewriterSegment[];
+  afterContent?: React.ReactNode;
+};
+
+type InlineTypewriterProps = {
   speed?: number;
+  charLimit?: number;
   className?: string;
   inline?: boolean;
   onComplete?: () => void;
-}) {
+} & (
+  | { segments: InlineTypewriterSegment[]; pages?: never }
+  | { pages: InlineTypewriterPage[]; segments?: never }
+);
+
+function InlineTypewriter({
+  segments,
+  pages,
+  speed = 30,
+  charLimit = 250,
+  className,
+  inline = false,
+  onComplete,
+}: InlineTypewriterProps) {
   const [typedCount, setTypedCount] = useState(0);
+  const [pageStart, setPageStart] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [history, setHistory] = useState<number[]>([]);
   const completionNotified = useRef(false);
-  const fullText = segments.map((segment) => segment.text).join("");
+  const allSegments = pages ? pages.flatMap((page) => page.segments) : segments;
+  const fullText = allSegments.map((segment) => segment.text).join("");
+  const pageRanges = pages?.reduce<
+    Array<{ end: number; afterContent?: React.ReactNode }>
+  >((ranges, page) => {
+    const start = ranges.at(-1)?.end ?? 0;
+    const pageLength = page.segments.reduce(
+      (length, segment) => length + segment.text.length,
+      0,
+    );
+    return [
+      ...ranges,
+      { end: start + pageLength, afterContent: page.afterContent },
+    ];
+  }, []);
+  const pageEnd = inline
+    ? fullText.length
+    : (pageRanges?.[currentPage]?.end ??
+      roundWord(fullText, Math.min(pageStart + charLimit, fullText.length)));
+
+  const hasNextPage = pageRanges
+    ? currentPage < pageRanges.length - 1
+    : pageEnd < fullText.length;
 
   useEffect(() => {
-    if (typedCount >= fullText.length) {
-      if (!completionNotified.current) {
+    if (typedCount >= pageEnd) {
+      if (typedCount >= fullText.length && !completionNotified.current) {
         completionNotified.current = true;
         onComplete?.();
       }
@@ -202,27 +246,71 @@ function InlineTypewriter({
     }, speed);
 
     return () => clearTimeout(timer);
-  }, [fullText.length, onComplete, speed, typedCount]);
+  }, [fullText.length, onComplete, pageEnd, speed, typedCount]);
 
-  let startOfSegment = 0;
+  const onNextPage = () => {
+    if (!hasNextPage) return;
+
+    setHistory((previousHistory) => [
+      ...previousHistory.slice(0, currentPage),
+      pageStart,
+    ]);
+    setCurrentPage((previousPage) => previousPage + 1);
+    setPageStart(pageEnd);
+    setTypedCount(pageEnd);
+  };
+
+  const onPrevPage = () => {
+    const previousPageStart = history[currentPage - 1];
+    if (previousPageStart === undefined) return;
+
+    setCurrentPage((previousPage) => previousPage - 1);
+    setPageStart(previousPageStart);
+    setTypedCount(previousPageStart);
+  };
+
+  const segmentRanges = allSegments.reduce<
+    Array<{
+      segment: InlineTypewriterSegment;
+      start: number;
+      end: number;
+    }>
+  >((ranges, segment) => {
+    const start = ranges.at(-1)?.end ?? 0;
+    return [...ranges, { segment, start, end: start + segment.text.length }];
+  }, []);
   const Wrapper = inline ? "span" : "div";
 
-  return (
+  const content = (
     <Wrapper className={className}>
-      {segments.map((segment, index) => {
-        const start = startOfSegment;
-        const end = start + segment.text.length;
-        const visibleLength = Math.max(
-          0,
-          Math.min(segment.text.length, typedCount - start),
+      {segmentRanges.map(({ segment, start, end }, index) => {
+        const visibleStart = Math.max(start, pageStart);
+        const visibleEnd = Math.min(end, typedCount, pageEnd);
+        const visibleLength = Math.max(0, visibleEnd - visibleStart);
+        if (visibleLength === 0) return null;
+
+        const visibleText = segment.text.slice(
+          visibleStart - start,
+          visibleStart - start + visibleLength,
         );
-        startOfSegment = end;
-        const visibleText = segment.text.slice(0, visibleLength);
         const content = segment.strong ? (
           <strong>{visibleText}</strong>
         ) : (
           visibleText
         );
+
+        if (segment.onClick) {
+          return (
+            <button
+              key={index}
+              type="button"
+              className="selection-child selection-option"
+              onClick={segment.onClick}
+            >
+              {content}
+            </button>
+          );
+        }
 
         if (segment.href) {
           return typedCount >= end ? (
@@ -236,22 +324,42 @@ function InlineTypewriter({
               {content}
             </a>
           ) : (
-            <span key={index}>{content}</span>
+            <React.Fragment key={index}>{content}</React.Fragment>
           );
         }
 
-        return <span key={index}>{content}</span>;
+        return <React.Fragment key={index}>{content}</React.Fragment>;
       })}
     </Wrapper>
+  );
+
+  if (inline) return content;
+
+  return (
+    <div className="text-container">
+      <div className="text">{content}</div>
+      <div className="set-of-buttons">
+        {currentPage !== 0 && (
+          <button onClick={onPrevPage} className="prev-button">
+            <div className="prev-icon" />
+            Prev
+          </button>
+        )}
+        {hasNextPage && (
+          <button onClick={onNextPage} className="next-button">
+            Next
+            <div className="next-icon" />
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
 export default function Home() {
   const [currentIcon, setCurrentIcon] = useState<string | null>(null);
-  const [currentSelection, setCurrentSelection] = useState<string | null>(null);
   const [modalSelection, setModalSelection] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [experienceIntroComplete, setExperienceIntroComplete] = useState(false);
   const [isCaught, setIsCaught] = useState(false);
   const [caughtPosition, setCaughtPosition] = useState([0, 0]);
 
@@ -366,7 +474,6 @@ export default function Home() {
       onDragEnd={(event) => {
         if (event.canceled) return;
 
-        setExperienceIntroComplete(false);
         const targetId = event.operation.target?.id;
         if (targetId === "droppable") {
           setCurrentIcon(event.operation.source?.id as string);
@@ -498,74 +605,35 @@ export default function Home() {
                   )}
 
                   {currentIcon === "experience" && (
-                    <>
-                      {" "}
-                      <div>
-                        <InlineTypewriter
-                          speed={30}
-                          segments={[
+                    <InlineTypewriter
+                      className="selection-group"
+                      pages={[
+                        {
+                          segments: [
                             {
-                              text: "My full-stack journey at Auth0 covers two main areas: building billing infrastructure on the ",
+                              text: "Full Stack Software Enginner - Okta(Auth0) - Activations team",
+                              onClick: () =>
+                                handleSelection("activations-team"),
                             },
-                            { text: "Growth", strong: true },
                             {
-                              text: " team, and scaling user sign-ups on the ",
+                              text: "Full Stack Software Enginner - Okta(Auth0) - Growth team",
+                              onClick: () => handleSelection("growth-team"),
                             },
-                            { text: "Activations", strong: true },
+                          ],
+                        },
+                        {
+                          segments: [
                             {
-                              text: " team. Choose a team below to learn more!",
+                              text: "Design Exploration - The Tamagotchi Handbook (WIP): ",
                             },
-                          ]}
-                          onComplete={() => setExperienceIntroComplete(true)}
-                        />
-                      </div>
-                      {experienceIntroComplete && (
-                        <div className="selection-group">
-                          <div>
-                            {currentSelection === "first-team" && (
-                              <div className="selection-icon" />
-                            )}
-
-                            <button
-                              className="selection-child"
-                              aria-label="Activations team"
-                              onMouseEnter={() =>
-                                setCurrentSelection("first-team")
-                              }
-                              onMouseLeave={() => setCurrentSelection(null)}
-                              onClick={() =>
-                                handleSelection("activations-team")
-                              }
-                            >
-                              <InlineTypewriter
-                                inline
-                                segments={[{ text: "Activations team" }]}
-                              />
-                            </button>
-                          </div>
-                          <div>
-                            {currentSelection === "second-team" && (
-                              <div className="selection-icon" />
-                            )}
-
-                            <button
-                              className="selection-child"
-                              aria-label="Growth team"
-                              onMouseEnter={() =>
-                                setCurrentSelection("second-team")
-                              }
-                              onMouseLeave={() => setCurrentSelection(null)}
-                              onClick={() => handleSelection("growth-team")}
-                            >
-                              <InlineTypewriter
-                                inline
-                                segments={[{ text: "Growth team" }]}
-                              />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
+                            {
+                              text: "Figma",
+                              href: "https://www.figma.com/design/TlF8dtnubNENJmpunnjFc4/The-Tamagotchi-Handbook?node-id=49-74&t=4uCnYseGooNyakmR-1",
+                            },
+                          ],
+                        },
+                      ]}
+                    />
                   )}
 
                   {currentIcon === "contact" && (

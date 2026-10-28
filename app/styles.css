@@ -215,6 +215,11 @@ button {
   color: #2a1d1d;
 }
 
+.text {
+  display: flex;
+  gap: 10px;
+}
+
 .square > .description {
   display: flex;
   flex-direction: column;
@@ -400,22 +405,36 @@ button {
 }
 
 .selection-group {
-  width: fit-content;
   display: flex;
   flex-direction: column;
-  align-items: start;
+  align-items: flex-start;
   gap: 10px;
-  padding-top: 15px;
 }
 
-.selection-icon {
+.selection-option {
+  display: flex;
+  align-items: baseline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selection-option::before {
   background-image: url("/arrow.png");
   background-repeat: no-repeat;
   background-size: 8px 8px;
-  width: 8px;
+  width: 16px;
   height: 8px;
-  display: inline-block;
-  margin-right: 8px;
+  flex: 0 0 16px;
+  visibility: hidden;
+  content: "";
+}
+
+.selection-option:hover::before {
+  visibility: visible;
 }
 
 .selection-child:hover {
