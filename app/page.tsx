@@ -598,7 +598,7 @@ export default function Home() {
                           { text: "Click " },
                           {
                             text: "here",
-                            href: "https://drive.google.com/file/d/11QsVMZDjLKibp-DUsug1fnu1iXdplVdy/view?usp=sharing",
+                            href: "https://drive.google.com/file/d/13WSD0JbLSkgMZTbkJlKaF5b0MR_sYH2v/view?usp=sharing",
                           },
                           { text: " to view my resume!" },
                         ]}
