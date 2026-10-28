@@ -576,6 +576,7 @@ ul {
 
   .description.modal-container {
     height: 100%;
+    top: auto;
   }
 
   .prev-button .next-button {
